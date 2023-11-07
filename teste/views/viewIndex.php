@@ -12,9 +12,9 @@ include("../controllers/handleReadData.php");
     <h1>Listar dados</h1>
     <?php
     foreach($data as $row){
-        $id = $row['id'];
-        $nome = ucwords($row['nome']);
-        $idade = $row['idade'];
+        $id = $row->id;
+        $nome = ucwords($row->nome);
+        $idade = $row->idade;
 
         echo "<div>
         <p>Id: {$id} - Nome: {$nome} - Idade: {$idade}.
