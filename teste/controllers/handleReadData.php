@@ -9,7 +9,7 @@
         $query = "SELECT * FROM users";
         $stmt = $conn->query($query);
     
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = $stmt->fetchAll(PDO::FETCH_OBJ);
     
         //echo json_encode($data);
     } catch (PDOException $e) {
