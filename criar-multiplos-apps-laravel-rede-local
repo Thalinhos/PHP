@@ -1,0 +1,126 @@
+# ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+# Laravel Multi-App Server com Apache e SQLite
+
+# Este guia mostra como configurar um servidor Ubuntu/Debian para rodar múltiplos aplicativos Laravel em uma única máquina, usando Apache VirtualHosts, SQLite e acesso pela rede local.
+
+1️⃣ Pré-requisitos
+sudo apt update
+sudo apt install apache2 php php-cli php-mbstring php-xml php-sqlite3 php-curl unzip composer git
+sudo systemctl enable apache2
+sudo systemctl start apache2
+
+2️⃣ Estrutura de diretórios
+sudo mkdir -p /var/www/laravel/app1
+sudo mkdir -p /var/www/laravel/app2
+touch /var/www/laravel/app1/database/database.sqlite
+touch /var/www/laravel/app2/database/database.sqlite
+
+# app1
+DB_CONNECTION=sqlite
+DB_DATABASE=/var/www/laravel/app1/database/database.sqlite
+# app2
+DB_CONNECTION=sqlite
+DB_DATABASE=/var/www/laravel/app2/database/database.sqlite
+
+
+3️⃣ Configuração do Apache (VirtualHosts)
+sudo nano /etc/apache2/sites-available/app1.conf
+<VirtualHost *:80>
+    ServerName app1.local
+    DocumentRoot /var/www/laravel/app1/public
+
+    <Directory /var/www/laravel/app1/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/app1_error.log
+    CustomLog ${APACHE_LOG_DIR}/app1_access.log combined
+</VirtualHost>
+sudo a2ensite app1.conf
+sudo a2ensite app2.conf
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+
+4️⃣ Configurar /etc/hosts
+sudo nano /etc/hosts
+127.0.0.1 app1.local
+127.0.0.1 app2.local
+// acessar via navegador
+http://app1.local
+http://app2.local
+
+5️⃣ Permissões do Laravel
+sudo chown -R www-data:www-data /var/www/laravel/app1/storage /var/www/laravel/app1/bootstrap/cache
+sudo chown -R www-data:www-data /var/www/laravel/app2/storage /var/www/laravel/app2/bootstrap/cache
+sudo chmod -R 775 /var/www/laravel/app1/storage /var/www/laravel/app1/bootstrap/cache
+sudo chmod -R 775 /var/www/laravel/app2/storage /var/www/laravel/app2/bootstrap/cache
+
+# ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+# Laravel Multi-App Server Setup Script
+
+Este script automatiza a criação de múltiplos VirtualHosts Apache para apps Laravel em um servidor Debian/Ubuntu, incluindo permissões e diretórios.
+
+```bash
+#!/bin/bash
+
+# ---------------------------
+# Configuração inicial
+# ---------------------------
+APACHE_DIR=/etc/apache2/sites-available
+WWW_DIR=/var/www/laravel
+APPS=(app1 app2) # Adicione mais apps aqui
+SERVER_IP=$(hostname -I | awk '{print $1}')
+
+# Cria diretórios e arquivos de banco SQLite
+for APP in "${APPS[@]}"; do
+    APP_PATH="$WWW_DIR/$APP"
+    echo "Criando diretório para $APP..."
+    sudo mkdir -p "$APP_PATH/public" "$APP_PATH/database" "$APP_PATH/storage" "$APP_PATH/bootstrap/cache"
+
+    # Cria banco SQLite
+    sudo touch "$APP_PATH/database/database.sqlite"
+
+    # Cria VirtualHost Apache
+    VHOST_FILE="$APACHE_DIR/$APP.conf"
+    echo "Criando VirtualHost $APP..."
+    sudo bash -c "cat > $VHOST_FILE" <<EOL
+<VirtualHost *:80>
+    ServerName $APP.local
+    DocumentRoot $APP_PATH/public
+
+    <Directory $APP_PATH/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog \${APACHE_LOG_DIR}/$APP_error.log
+    CustomLog \${APACHE_LOG_DIR}/$APP_access.log combined
+</VirtualHost>
+EOL
+
+    # Permissões Laravel
+    sudo chown -R www-data:www-data $APP_PATH/storage $APP_PATH/bootstrap/cache
+    sudo chmod -R 775 $APP_PATH/storage $APP_PATH/bootstrap/cache
+
+done
+
+# Ativa sites e módulo rewrite
+for APP in "${APPS[@]}"; do
+    sudo a2ensite "$APP.conf"
+done
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+
+# Sugestão de hosts para cliente
+echo "
+Adicione as seguintes linhas no /etc/hosts dos clientes:
+"
+for APP in "${APPS[@]}"; do
+    echo "$SERVER_IP $APP.local"
+done
+
+echo "Script concluído. Seus apps Laravel estão prontos e acessíveis via VirtualHosts."
+```
