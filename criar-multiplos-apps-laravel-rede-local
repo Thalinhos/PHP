@@ -124,3 +124,28 @@ done
 
 echo "Script concluído. Seus apps Laravel estão prontos e acessíveis via VirtualHosts."
 ```
+# script de ativação do etc hosts para windows .bat
+@echo off
+SETLOCAL
+
+:: ===== CONFIGURAÇÃO =====
+SET SERVER_IP=192.168.1.50
+SET APPS=app1.local app2.local
+SET HOSTS_FILE=%SystemRoot%\System32\drivers\etc\hosts
+
+:: ===== FUNÇÃO DE ADICIONAR HOST =====
+for %%A in (%APPS%) do (
+    echo Adicionando %%A para %SERVER_IP%
+    
+    :: Verifica se já existe no hosts
+    findstr /R /C:"%%A" %HOSTS_FILE% >nul
+    if %errorlevel%==0 (
+        echo %%A já existe no hosts, pulando...
+    ) else (
+        echo %SERVER_IP% %%A>> %HOSTS_FILE%
+        echo %%A adicionado com sucesso.
+    )
+)
+
+echo Concluído! Certifique-se de executar este script como Administrador.
+pause
